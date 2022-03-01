@@ -1,6 +1,9 @@
+import os.path
+
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from tqdm import tqdm
 
 
 def compute_content_cost(activation_content, activation_generated):
@@ -70,13 +73,13 @@ def tensor_to_image(tensor):
     return Image.fromarray(tensor)
 
 
-def show_image(generated_image, name):
+def show_image(generated_image, name, path=''):
     image = tensor_to_image(generated_image)
     image.show()
-    image.save(f"../gallery/created_pictures/{name}")
+    image.save(os.path.join(path, name))
 
 
-def train(model, style_image, content_image, epochs, optimizer, style_layers, content_layer, save_after_epoch):
+def train(model, style_image, content_image, epochs, optimizer, style_layers, content_layer, save_after_epoch, path):
     generated_image = generate_start_image(content_image)
     chosen_layers = style_layers + content_layer
     model_with_outputs = get_layers_outputs(model, chosen_layers)
@@ -99,12 +102,10 @@ def train(model, style_image, content_image, epochs, optimizer, style_layers, co
         optimizer.apply_gradients([(grad, image)])
         image.assign(tf.clip_by_value(image, 0.0, 1.0))
 
-    for i in range(epochs):
+    for i in tqdm(range(epochs)):
         _train_step(generated_image)
         if i % save_after_epoch == 0:
-            show_image(generated_image, f"image_{i // save_after_epoch}.jpg")
-
-        print(f"Epoch_{i}")
+            show_image(generated_image, f"image_{i // save_after_epoch}.jpg", path)
 
 
 def main():
@@ -129,7 +130,9 @@ def main():
     content_layers = [('block5_conv4', 1)]
     epochs = 20000
     save_after_epoch = 500
-    train(vgg, style_image, content_image, epochs, optimizer, style_layers, content_layers, save_after_epoch)
+    path_to_save = '../gallery/created_pictures'
+    train(vgg, style_image, content_image, epochs, optimizer, style_layers,
+          content_layers, save_after_epoch, path_to_save)
 
 
 if __name__ == '__main__':
